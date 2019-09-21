@@ -1,33 +1,31 @@
 # -*- coding: utf-8 -*-
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
+from musicplatform import MusicPlatform, SpotifyPlaylist, Track
 from config import Config
+import pprint
 
 def main():
     c = Config()
-    scope = 'playlist-read-collaborative'
+    sp = SpotifyPlaylist(username=c.spotify_username,
+                         client_id=c.spotify_client_id,
+                         secret=c.spotify_secret)
+    # sp.get_playlist('https://open.spotify.com/playlist/4Yg2e0n6ZSJlABfBJLWVyA?si=SneZhsQ_R5-djkmrkdlWXg')
+    # playlist = sp.create_playlist('Jeffar is a pirate', 'We should all live a pirate\'s life')
     
-    client_credentials_manager = SpotifyClientCredentials()
-    sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+    auto = [Track('Playlist', artist='Kid Quill'),
+            Track('Created', artist='Portugal. The Man'),
+            Track('Automatically', artist='Hit-Boy'),
+            Track('Jeff', artist='McCafferty'),
+            Track("Isn't It Time", artist='The Babys', album='Broken Heart'),
+            Track('You Shook Me All Night Long', artist='AC/DC')]
+    wp = [Track('War Paint',
+                album='Follow Your Bliss: The Best of Senses Fail'),
+          Track('I Am the Arsonist - Live', artist='Silverstein')]
+    #for track in auto:
+    #    track.uri = sp.get_track_uri(track.name, artist_name=track.artist,
+    #                                 album=track.album)
+    # sp.add_songs_to_playlist(playlist['uri'], auto)
     
-    url = 'https://open.spotify.com/playlist/25ZSrTYT8Z8pDCJH7BjOs5'
-    spotify_id = get_id(url)
-    # results = sp.search(q='playlist:{}'.format(spotify_id), type='playlist')
-    result = sp._get(url='https://api.spotify.com/v1/playlists/{}'.format(spotify_id))
-    for track in result['tracks']['items']:
-        print(track['track']['name'])
-    
-        
-    
-
-
-def get_id(url):
-    l_url = url.lower()
-    
-    if 'playlist' in l_url:
-        return url.split('/')[-1]
-    else:
-        raise ValueError('URL is not a playlist')
+    pprint.pprint([track for track in sp.get_playlist_tracks('https://open.spotify.com/playlist/1fUiRhbMvGf0AR9m68gEan?si=rtwTq76cQgqU0YrrFHT1aA')])
 
 
 if __name__ == '__main__':
