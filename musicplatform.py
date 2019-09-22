@@ -30,6 +30,17 @@ class Track(object):
         return self.__str__()
 
 
+class Playlist(object):
+    def __init__(self, name: str, description: str = '', uri: str = '',
+                 id: str = '', platform: str = '', data: dict = {}):
+        self.name = name
+        self.description = description
+        self.uri = uri
+        self.id = id
+        self.platform = platform
+        self.data = data
+
+
 class MusicPlatform(object):
     def __init__(self, client_id: str = '', secret: str = '',
                  username: str = '', password: str = '',
@@ -46,7 +57,15 @@ class MusicPlatform(object):
     def get_playlist_tracks(self, url: str) -> list:
         pass
 
-    def create_playlist(self, playlist_name: str, description: str = '') -> None:
+    def create_playlist(self, playlist_name: str, description: str = ''
+                        ) -> None:
+        pass
+    
+    def get_playlist(self, url) -> dict:
+        pass
+    
+    def get_track_uri(name: str = '', artist_name: str = '', album: str = '',
+                      track: Track = None) -> str:
         pass
 
 
@@ -66,17 +85,36 @@ class SpotifyPlaylist(MusicPlatform):
         self.conn = spotipy.Spotify(auth=token)
         
     def get_playlist_tracks(self, url: str) -> list:
-        spotify_id = self._get_id(url)
-        result = self.conn._get(url=('https://api.spotify.com/v1/playlists/{}')
-        .format(spotify_id))
+        playlist = self.get_playlist(url)
         tracks = []
-        for track in result['tracks']['items']:
+        for track in playlist.data['tracks']['items']:
             t = track['track']
             tracks.append(Track(t['name'],
                           artist=t['artists'][0]['name'],
-                          album=t['album']['name'],
-                          uri=t['uri']))
+                          album=t['album']['name']))
         return tracks
+
+    def create_playlist(self, playlist_name: str, description: str = ''
+                        ) -> dict:
+        playlist = self.conn.user_playlist_create(self.username, playlist_name,
+                                                  public=True,
+                                                  description=description)
+        pprint.pprint(playlist)
+        return self._fill_playlist(playlist)
+    
+    def get_playlist(self, url: str) -> Playlist:
+        spotify_id = self._get_id(url)
+        result = self.conn._get(url=('https://api.spotify.com/v1/playlists/{}')
+        .format(spotify_id))
+        return self._fill_playlist(result)
+    
+    def _fill_playlist(self, p: dict) -> Playlist:
+        name = p['name']
+        desc = p['description']
+        ext_url = p['external_urls']['spotify']
+        url_id = p['id']
+        return Playlist(name, description=desc, uri=ext_url, id=url_id,
+                        platform=self.platform_name, data=p)
 
     def _get_id(self, url: str):
         l_url = url.lower()
@@ -84,32 +122,34 @@ class SpotifyPlaylist(MusicPlatform):
             return url.split('/')[-1]
         else:
             raise ValueError('URL is not a playlist')
-    
-    def create_playlist(self, playlist_name: str, description: str = ''
-                        ) -> dict:
-        playlist = self.conn.user_playlist_create(self.username, playlist_name,
-                                                  public=True,
-                                                  description=description)
-        return playlist
 
     def add_songs_to_playlist(self, playlist_id: str, tracks: list):
         track_ids = [track.uri for track in tracks if track.uri != '']
-        self.conn.user_playlist_add_tracks(self.username, playlist_id,
-                                           track_ids)
+        pprint.pprint(track_ids)
+        if len(track_ids) > 0:
+            return self.conn.user_playlist_add_tracks(self.username,
+                                                      playlist_id,
+                                                      track_ids)
+        else:
+            return None
     
-    def get_track_uri(self, name: str, artist_name: str = '', album: str = ''
-                     ) -> str:
+    def get_track_uri(self, name: str = '', artist_name: str = '',
+                      album: str = '', track: Track = None) -> str:
+        if track is not None:
+            name = track.name
+            artist_name = track.artist
+            album = track.album
+
         results = self.conn.search(q='track:{}'.format(name), type='track',
                                    limit=20)
-        if name == "Isn't It Time":
-            pprint.pprint(results)
-        for track in results['tracks']['items']:
-            track_album = track['album']
-            uri = track['uri']
-            for artist in track['artists']:
-                if artist['name'] == artist_name:
+        
+        for t in results['tracks']['items']:
+            track_album = t['album']
+            uri = t['uri']
+            for artist in t['artists']:
+                if artist['name'] == artist_name and artist_name != '':
                     return uri
-            if track_album['name'] == album:
+            if track_album['name'] == album and album != '':
                 return uri
         return ''
 
@@ -144,21 +184,55 @@ class YoutubePlaylist(MusicPlatform):
         self.conn = googleapiclient.discovery.build(
             api_service_name, api_version, credentials=credentials)
         
-        def get_playlist_tracks(self, url: str) -> list:
-            pass
+    def get_playlist_tracks(self, url: str) -> list:        
+        url_id = self._get_id(url)
+        tracks = []
+        request = self.conn.playlistItems().list(
+                part='contentDetails, id, snippet, status', playlistId=url_id)
+        response = request.execute()
+        for track in response['items']:
+            title = track['snippet']['title'].split('\n')[0]
+            tracks.append(Track(title))
+        pprint.pprint(tracks)
+        return tracks
+
+    def create_playlist(self, playlist_name, description: str = ''
+                        ) -> Playlist:
+        # scopes = []
+        request = self.conn.playlists().insert(
+                part='snippet',
+                body={
+                        'snippet': {
+                                'title': playlist_name,
+                                'description': description
+                                }})
+        response = request.execute()
+        return self._fill_playlist(response)
+    
+    def get_playlist(self, url: str) -> Playlist:
+        url_id = self._get_id(url)
+        request = self.conn.playlists().list(
+                part='snippet', id=url_id)
+        response = request.execute()
+        return self._fill_playlist(response)
+
+    def _fill_playlist(self, p: dict) -> Playlist:
+        snip = p['items'][0]['snippet']
+        name = snip['title']
+        desc = snip['description']
+        url_id = p['items'][0]['id']
+        ext_uri = 'https://www.youtube.com/playlist?list={}'.format(url_id)
         
-        def add_songs_to_playlist(self, playlist_id: str, tracks: list
-                                  ) -> None:
-            pass
-        
-        def create_playlist(self, playlist_name, description: str = ''
-                            ) -> dict:
-            # scopes = []
-            request = self.conn.playlists().insert(
-                    body={
-                            'snippet': {
-                                    'title': playlist_name,
-                                    'description': description
-                                    }})
-            response = request.execute()
-            return response
+        return Playlist(name, description=desc, uri=ext_uri, id=url_id,
+                        platform=self.platform_name, data=p)
+
+    def _get_id(self, url: str) -> str:
+        return url.split('list=')[-1]    
+
+    def add_songs_to_playlist(self, playlist_id: str, tracks: list
+                              ) -> None:
+        pass    
+    
+    def get_track_uri(name: str = '', artist_name: str = '', album: str = '',
+                      track: Track = None) -> str:
+        pass

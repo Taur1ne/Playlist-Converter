@@ -14,7 +14,8 @@ def main():
                         secret=c.google_playlistconverter_secret,
                         scopes=['https://www.googleapis.com/auth/youtube.force-ssl',
                                 'https://www.googleapis.com/auth/youtube.readonly'])
-    pprint.pprint(yt.create_playlist('testing!!!', description='gains'))
+    # pprint.pprint(yt.create_playlist('testing!!!', description='gains'))
+    pprint.pprint(yt.get_playlist_tracks('https://www.youtube.com/playlist?list=PL9FE0DC696121F551'))
     
 
 if __name__ == '__main__':

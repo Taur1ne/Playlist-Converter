@@ -20,15 +20,15 @@ def main():
     wp = [Track('War Paint',
                 album='Follow Your Bliss: The Best of Senses Fail'),
           Track('I Am the Arsonist - Live', artist='Silverstein')]
-    #for track in auto:
+    
+    
+    #tracks = sp.get_playlist_tracks('https://open.spotify.com/playlist/1fUiRhbMvGf0AR9m68gEan?si=rtwTq76cQgqU0YrrFHT1aA')
+    #playlist = sp.create_playlist('Panda II', description='suhhh')
+    #for track in tracks:
     #    track.uri = sp.get_track_uri(track.name, artist_name=track.artist,
     #                                 album=track.album)
-    # sp.add_songs_to_playlist(playlist['uri'], auto)
-    
-    tracks = sp.get_playlist_tracks('https://open.spotify.com/playlist/1fUiRhbMvGf0AR9m68gEan?si=rtwTq76cQgqU0YrrFHT1aA')
-    playlist = sp.create_playlist('Panda II', description='suhhh')
-    sp.add_songs_to_playlist(playlist['uri'], tracks)
-
+    #sp.add_songs_to_playlist(playlist['uri'], tracks)
+    pprint.pprint(sp.get_playlist('https://open.spotify.com/playlist/1fUiRhbMvGf0AR9m68gEan?si=rtwTq76cQgqU0YrrFHT1aA').data)
 
 if __name__ == '__main__':
     main()
