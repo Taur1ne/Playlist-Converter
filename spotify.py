@@ -25,7 +25,9 @@ def main():
     #                                 album=track.album)
     # sp.add_songs_to_playlist(playlist['uri'], auto)
     
-    pprint.pprint([track for track in sp.get_playlist_tracks('https://open.spotify.com/playlist/1fUiRhbMvGf0AR9m68gEan?si=rtwTq76cQgqU0YrrFHT1aA')])
+    tracks = sp.get_playlist_tracks('https://open.spotify.com/playlist/1fUiRhbMvGf0AR9m68gEan?si=rtwTq76cQgqU0YrrFHT1aA')
+    playlist = sp.create_playlist('Panda II', description='suhhh')
+    sp.add_songs_to_playlist(playlist['uri'], tracks)
 
 
 if __name__ == '__main__':

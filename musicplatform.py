@@ -4,10 +4,14 @@ Created on Sat Sep 21 15:19:36 2019
 
 @author: Taur1ne
 """
+import os
 import spotipy
 # from spotipy.oauth2 import SpotifyClientCredentials
 import spotipy.util as util
 import pprint
+import google_auth_oauthlib.flow
+import googleapiclient.discovery
+import googleapiclient.errors
 
 
 class Track(object):
@@ -29,29 +33,29 @@ class Track(object):
 class MusicPlatform(object):
     def __init__(self, client_id: str = '', secret: str = '',
                  username: str = '', password: str = '',
-                 platform_name: str ='') -> None:
+                 platform_name: str ='', scopes: list = []) -> None:
         self.client_id = client_id
         self.secret = secret
         self.username = username
         self.password = password
         self.platform_name = platform_name
+        self.scopes = scopes
         self.conn = None
+        
 
-
-    def get_playlist(self, url: str):
+    def get_playlist_tracks(self, url: str) -> list:
         pass
 
-    def create_playlist(self, playlist_name: str, tracks: dict,
-                        description: str = '') -> None:
+    def create_playlist(self, playlist_name: str, description: str = '') -> None:
         pass
 
 
 class SpotifyPlaylist(MusicPlatform):
     def __init__(self, client_id='', secret='', username='', password='',
-                 platform_name='Spotify'):
+                 platform_name='Spotify', scopes: list = []):
         super(SpotifyPlaylist, self).__init__(client_id=client_id,
              secret=secret, username=username, password=password,
-             platform_name=platform_name)
+             platform_name=platform_name, scopes=scopes)
         # ccm = SpotifyClientCredentials()
         # self.conn = spotipy.Spotify(client_credentials_manager=ccm)
         token = util.prompt_for_user_token(self.username,
@@ -70,7 +74,8 @@ class SpotifyPlaylist(MusicPlatform):
             t = track['track']
             tracks.append(Track(t['name'],
                           artist=t['artists'][0]['name'],
-                          album=t['album']['name']))
+                          album=t['album']['name'],
+                          uri=t['uri']))
         return tracks
 
     def _get_id(self, url: str):
@@ -113,9 +118,47 @@ class ApplePlaylist(MusicPlatform):
     pass
 
 
-class GooglePlaylist(MusicPlatform):
+class GoogleMusicPlaylist(MusicPlatform):
     pass
 
 
 class YoutubePlaylist(MusicPlatform):
-    pass
+    def __init__(self, client_id='', secret='', username='', password='',
+                 platform_name='Youtube', scopes: list = []):
+        super(YoutubePlaylist, self).__init__(client_id=client_id,
+             secret=secret, username=username, password=password,
+             platform_name=platform_name, scopes=scopes)
+        # Disable OAuthlib's HTTPS verification when running locally.
+        # *DO NOT* leave this option enabled in production.
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+        # scopes = ["https://www.googleapis.com/auth/youtube.readonly"]
+    
+        api_service_name = 'youtube'
+        api_version = 'v3'
+        client_secrets_file = 'google_playlistconverter.json'
+    
+        # Get credentials and create an API client
+        flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
+            client_secrets_file, scopes)
+        credentials = flow.run_console()
+        self.conn = googleapiclient.discovery.build(
+            api_service_name, api_version, credentials=credentials)
+        
+        def get_playlist_tracks(self, url: str) -> list:
+            pass
+        
+        def add_songs_to_playlist(self, playlist_id: str, tracks: list
+                                  ) -> None:
+            pass
+        
+        def create_playlist(self, playlist_name, description: str = ''
+                            ) -> dict:
+            # scopes = []
+            request = self.conn.playlists().insert(
+                    body={
+                            'snippet': {
+                                    'title': playlist_name,
+                                    'description': description
+                                    }})
+            response = request.execute()
+            return response
