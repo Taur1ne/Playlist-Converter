@@ -5,10 +5,11 @@ Created on Sat Sep 21 15:19:36 2019
 @author: Taur1ne
 """
 import os
+import pprint
+
 import spotipy
 # from spotipy.oauth2 import SpotifyClientCredentials
 import spotipy.util as util
-import pprint
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
@@ -200,13 +201,17 @@ class YoutubePlaylist(MusicPlatform):
                         ) -> Playlist:
         # scopes = []
         request = self.conn.playlists().insert(
-                part='snippet',
+                part='snippet, status',
                 body={
                         'snippet': {
                                 'title': playlist_name,
                                 'description': description
+                                },
+                        'status': {
+                                'privacyStatus': 'public'
                                 }})
         response = request.execute()
+        pprint.pprint(response)
         return self._fill_playlist(response)
     
     def get_playlist(self, url: str) -> Playlist:
@@ -214,13 +219,13 @@ class YoutubePlaylist(MusicPlatform):
         request = self.conn.playlists().list(
                 part='snippet', id=url_id)
         response = request.execute()
-        return self._fill_playlist(response)
+        return self._fill_playlist(response['items'][0])
 
     def _fill_playlist(self, p: dict) -> Playlist:
-        snip = p['items'][0]['snippet']
+        snip = p['snippet']
         name = snip['title']
         desc = snip['description']
-        url_id = p['items'][0]['id']
+        url_id = p['id']
         ext_uri = 'https://www.youtube.com/playlist?list={}'.format(url_id)
         
         return Playlist(name, description=desc, uri=ext_uri, id=url_id,

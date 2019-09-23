@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import pprint
+
 from musicplatform import MusicPlatform, SpotifyPlaylist, Track
 from config import Config
-import pprint
+
 
 def main():
     c = Config()

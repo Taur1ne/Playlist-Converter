@@ -5,10 +5,12 @@ Created on Sun Sep 22 10:23:26 2019
 @author: cwong
 """
 import praw
-from config import Config
-from musicplatform import YoutubePlaylist, SpotifyPlaylist
 from html.parser import HTMLParser
 from urllib.parse import urlparse
+
+from config import Config
+from musicplatform import YoutubePlaylist, SpotifyPlaylist
+
 
 
 def main():
@@ -31,6 +33,8 @@ def main():
     
     for mention in reddit.inbox.mentions(limit=10):
         for url in get_urls(mention.body_html):
+            if 'youtube' in url:
+                continue
             src_p = get_platform(url)
             dst_platforms = [key for key in platforms.keys() if key != src_p]
             try:
@@ -95,12 +99,12 @@ def get_platform(url: str) -> str:
 
 
 def get_urls(html: str) -> list:
-    parser = MyHTMLParser()
+    parser = AnchorParser()
     parser.feed(html)
     return parser.URLS
 
 
-class MyHTMLParser(HTMLParser):
+class AnchorParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.reset()

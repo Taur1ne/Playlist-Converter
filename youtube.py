@@ -4,9 +4,11 @@ Created on Sat Sep 21 22:03:10 2019
 
 @author: cwong
 """
+import pprint
+
 from config import Config
 from musicplatform import YoutubePlaylist
-import pprint
+
 
 def main():
     c = Config()
