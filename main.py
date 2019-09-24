@@ -62,6 +62,7 @@ def main():
                 # Set the track unique identifiers for that dest. platform
                 for track in tracks:
                     track.uri = dst_platform.get_track_uri(track=track)
+                    print('name: {}, uri: {}'.format(track.name, track.uri))
                 
                 dst_platform.add_songs_to_playlist(dst_playlist.id, tracks)
                 print('{} playlist has been created here: {}'.format(

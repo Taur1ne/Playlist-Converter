@@ -100,7 +100,6 @@ class SpotifyPlaylist(MusicPlatform):
         playlist = self.conn.user_playlist_create(self.username, playlist_name,
                                                   public=True,
                                                   description=description)
-        pprint.pprint(playlist)
         return self._fill_playlist(playlist)
     
     def get_playlist(self, url: str) -> Playlist:
@@ -236,8 +235,34 @@ class YoutubePlaylist(MusicPlatform):
 
     def add_songs_to_playlist(self, playlist_id: str, tracks: list
                               ) -> None:
-        pass    
+        for track in tracks:
+            request = self.conn.playlistItems().insert(
+                    part='snippet',
+                    body={
+                            'snippet': {
+                                    'playlistId': playlist_id,
+                                    'resourceId':{
+                                            'videoId': track.uri,
+                                            'kind': 'youtube#video'
+                                            }}})
+            request.execute()
     
-    def get_track_uri(name: str = '', artist_name: str = '', album: str = '',
-                      track: Track = None) -> str:
-        pass
+    def get_track_uri(self, name: str = '', artist_name: str = '',
+                      album: str = '', track: Track = None) -> str:
+        if track is not None:
+            name = track.name
+            artist_name = track.artist
+            album = track.album
+        
+        query = '{} {} {}'.format(name, artist_name, album)
+        request = self.conn.search().list(
+                part='snippet',
+                maxResults=1,
+                q=query)
+        response = request.execute()
+        pprint.pprint('query: {}'.format(query))
+        pprint.pprint(response)
+        return response['items'][0]['id']['videoId']
+        
+        
+        
