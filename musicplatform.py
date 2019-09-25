@@ -164,7 +164,7 @@ class GoogleMusicPlaylist(MusicPlatform):
 
 class YoutubePlaylist(MusicPlatform):
     def __init__(self, client_id='', secret='', username='', password='',
-                 platform_name='Youtube', scopes: list = []):
+                 platform_name='YouTube', scopes: list = []):
         super(YoutubePlaylist, self).__init__(client_id=client_id,
              secret=secret, username=username, password=password,
              platform_name=platform_name, scopes=scopes)

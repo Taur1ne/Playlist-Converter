@@ -7,6 +7,7 @@ Created on Sun Sep 22 10:23:26 2019
 import praw
 from html.parser import HTMLParser
 from urllib.parse import urlparse
+import pprint
 
 from config import Config
 from musicplatform import YoutubePlaylist, SpotifyPlaylist
@@ -31,8 +32,18 @@ def main():
                                        secret=c.spotify_secret)
     }
     
-    for mention in reddit.inbox.mentions(limit=10):
-        for url in get_urls(mention.body_html):
+    for unread in reddit.inbox.unread(limit=10):
+        pprint.pprint(unread.body)
+        if c.reddit_username not in unread.body:
+            print('no username mentioned')
+            # Should check to see if the parent comment has a link in it
+            unread.mark_read()
+            
+            continue
+        
+        for url in get_urls(unread.body_html):
+            msg = '🎵🎵🎵 \nHello! The new playlists are below: '
+            msg_template = '\n - {} playlist here: {}'
             if 'youtube' in url:
                 continue
             src_p = get_platform(url)
@@ -65,10 +76,21 @@ def main():
                     print('name: {}, uri: {}'.format(track.name, track.uri))
                 
                 dst_platform.add_songs_to_playlist(dst_playlist.id, tracks)
-                print('{} playlist has been created here: {}'.format(
-                        dst_platform.platform_name, dst_playlist_url))
-        # Need to mark the mention as read
-        mention.mark_read()
+                msg += msg_template.format(
+                        dst_platform.platform_name, dst_playlist_url)
+                if dst_platform.platform_name == 'YouTube':
+                    msg += msg_template.format('YouTube Music',
+                                               dst_playlist_url.replace(
+                                                       'www.youtube',
+                                                       'music.youtube'))
+        
+        msg += ('\n\n\nSend me a PM if you encountered an error. The YouTube '
+                'API has a limit to the number of playlists a given user can '
+                'create in a day and the bot could\'ve exceeded the limit for '
+                'the day.')
+        
+        unread.reply(msg)
+        unread.mark_read()
 
 
 def get_reddit(config):
