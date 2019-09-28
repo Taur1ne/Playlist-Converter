@@ -31,20 +31,23 @@ def main():
                                        client_id=c.spotify_client_id,
                                        secret=c.spotify_secret)
     }
+    msg_template = '\n - {} playlist here: {}'
     
     for unread in reddit.inbox.unread(limit=10):
-        pprint.pprint(unread.body)
+        # pprint.pprint(unread.body)
         if c.reddit_username not in unread.body:
             print('no username mentioned')
             # Should check to see if the parent comment has a link in it
             unread.mark_read()
             
             continue
-        
-        for url in get_urls(unread.body_html):
-            msg = '🎵🎵🎵 \nHello! The new playlists are below: '
-            msg_template = '\n - {} playlist here: {}'
-            if 'youtube' in url:
+        msg = '🎵🎵🎵 \n\nHello! The converted playlists are below: '
+        urls = get_urls(unread.body_html)
+        if len(urls) == 0:
+            # Get the parent comment and see if it has URLs in it
+            pass
+        for url in urls:
+            if 'youtube' in url.lower():
                 continue
             src_p = get_platform(url)
             dst_platforms = [key for key in platforms.keys() if key != src_p]
@@ -70,25 +73,22 @@ def main():
                                                 description=src_playlist_desc)
                 dst_playlist_url = dst_playlist.uri
                 
-                # Set the track unique identifiers for that dest. platform
-                for track in tracks:
-                    track.uri = dst_platform.get_track_uri(track=track)
-                    print('name: {}, uri: {}'.format(track.name, track.uri))
-                
                 dst_platform.add_songs_to_playlist(dst_playlist.id, tracks)
                 msg += msg_template.format(
                         dst_platform.platform_name, dst_playlist_url)
+                print(msg)
                 if dst_platform.platform_name == 'YouTube':
+                    print('YouTube Quota: {}'.format(dst_platform.quota))
                     msg += msg_template.format('YouTube Music',
                                                dst_playlist_url.replace(
                                                        'www.youtube',
                                                        'music.youtube'))
-        
+        print(msg)
         msg += ('\n\n\nSend me a PM if you encountered an error. The YouTube '
                 'API has a limit to the number of playlists a given user can '
                 'create in a day and the bot could\'ve exceeded the limit for '
                 'the day.')
-        
+        print(msg)
         unread.reply(msg)
         unread.mark_read()
 

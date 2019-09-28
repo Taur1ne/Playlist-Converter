@@ -124,7 +124,12 @@ class SpotifyPlaylist(MusicPlatform):
             raise ValueError('URL is not a playlist')
 
     def add_songs_to_playlist(self, playlist_id: str, tracks: list):
-        track_ids = [track.uri for track in tracks if track.uri != '']
+        track_ids = []
+        for track in tracks:
+            track_id = self.get_track_uri(track=track)
+            if track_id != '':
+                track_ids.append(track_id)
+
         pprint.pprint(track_ids)
         if len(track_ids) > 0:
             return self.conn.user_playlist_add_tracks(self.username,
@@ -164,10 +169,11 @@ class GoogleMusicPlaylist(MusicPlatform):
 
 class YoutubePlaylist(MusicPlatform):
     def __init__(self, client_id='', secret='', username='', password='',
-                 platform_name='YouTube', scopes: list = []):
+                 platform_name='YouTube', scopes: list = [], quota: int = 0):
         super(YoutubePlaylist, self).__init__(client_id=client_id,
              secret=secret, username=username, password=password,
              platform_name=platform_name, scopes=scopes)
+        self.quota = quota
         # Disable OAuthlib's HTTPS verification when running locally.
         # *DO NOT* leave this option enabled in production.
         os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
@@ -194,6 +200,7 @@ class YoutubePlaylist(MusicPlatform):
             title = track['snippet']['title'].split('\n')[0]
             tracks.append(Track(title))
         pprint.pprint(tracks)
+        self.quota += 6
         return tracks
 
     def create_playlist(self, playlist_name, description: str = ''
@@ -211,6 +218,7 @@ class YoutubePlaylist(MusicPlatform):
                                 }})
         response = request.execute()
         pprint.pprint(response)
+        self.quota += 54
         return self._fill_playlist(response)
     
     def get_playlist(self, url: str) -> Playlist:
@@ -218,6 +226,7 @@ class YoutubePlaylist(MusicPlatform):
         request = self.conn.playlists().list(
                 part='snippet', id=url_id)
         response = request.execute()
+        self.quota += 3
         return self._fill_playlist(response['items'][0])
 
     def _fill_playlist(self, p: dict) -> Playlist:
@@ -236,6 +245,7 @@ class YoutubePlaylist(MusicPlatform):
     def add_songs_to_playlist(self, playlist_id: str, tracks: list
                               ) -> None:
         for track in tracks:
+            track.uri = self.get_track_uri(track=track)
             request = self.conn.playlistItems().insert(
                     part='snippet',
                     body={
@@ -246,6 +256,7 @@ class YoutubePlaylist(MusicPlatform):
                                             'kind': 'youtube#video'
                                             }}})
             request.execute()
+            self.quota += 50
     
     def get_track_uri(self, name: str = '', artist_name: str = '',
                       album: str = '', track: Track = None) -> str:
@@ -258,10 +269,12 @@ class YoutubePlaylist(MusicPlatform):
         request = self.conn.search().list(
                 part='snippet',
                 maxResults=1,
+                type='video',
                 q=query)
         response = request.execute()
         pprint.pprint('query: {}'.format(query))
         pprint.pprint(response)
+        self.quota += 100
         return response['items'][0]['id']['videoId']
         
         
